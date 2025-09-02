@@ -24,4 +24,4 @@ The latest redesign introduces a sidebar-driven layout, animated status updates,
 
 ### Fonts
 
-The UI loads the bundled [Tajawal](https://fonts.google.com/specimen/Tajawal) font family from `assets/fonts` at startup and applies it to all widgets. Place the required `Tajawal-*.ttf` files in that folder. When packaging the application (e.g. with PyInstaller), these font files are included so the program uses Tajawal even when distributed as an `.exe`. If loading fails, standard system fonts are used.
+Any `.ttf` files placed under `assets/fonts` are registered automatically when the application starts. If Cairo or Tajawal files are present, that family becomes the interface default so the program can use the custom fonts even when packaged as an `.exe`. Should loading fail, the UI quietly falls back to the system fonts.

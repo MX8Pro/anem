@@ -102,30 +102,40 @@ def resource_path(*parts: str) -> str:
     return os.path.join(base, *parts)
 
 
-def load_tajawal_fonts(root_win: tk.Tk) -> None:
-    """Attempt to load bundled Tajawal fonts; fall back silently if unavailable."""
+def load_bundled_fonts(root_win: tk.Tk) -> None:
+    """Register any `.ttf` fonts in assets/fonts and prefer Cairo/Tajawal families."""
     global DEFAULT_FONT_FAMILY
     fonts_dir = resource_path('assets', 'fonts')
     if not os.path.isdir(fonts_dir):
         return
-    loaded_any = False
+    loaded_families: list[str] = []
     for fname in os.listdir(fonts_dir):
-        if not fname.lower().endswith('.ttf') or 'tajawal' not in fname.lower():
+        if not fname.lower().endswith('.ttf'):
             continue
         fpath = os.path.join(fonts_dir, fname)
         try:
             if os.name == 'nt':
                 from ctypes import windll
                 FR_PRIVATE = 0x10
-                if windll.gdi32.AddFontResourceExW(fpath, FR_PRIVATE, 0):
-                    loaded_any = True
+                windll.gdi32.AddFontResourceExW(fpath, FR_PRIVATE, 0)
             else:
                 root_win.tk.call('font', 'create', fname, '-file', fpath)
-                loaded_any = True
+            try:
+                temp = tkFont.Font(root=root_win, file=fpath)
+                fam = temp.actual('family')
+                root_win.tk.call('font', 'delete', temp.name)
+                loaded_families.append(fam)
+            except Exception:
+                pass
         except Exception as e:
             print(f"Font load warning for {fname}: {e}")
-    if loaded_any:
-        DEFAULT_FONT_FAMILY = 'Tajawal'
+    preferred = next((f for f in loaded_families if f.lower().startswith('cairo')), None)
+    if not preferred:
+        preferred = next((f for f in loaded_families if f.lower().startswith('tajawal')), None)
+    if not preferred and loaded_families:
+        preferred = loaded_families[0]
+    if preferred:
+        DEFAULT_FONT_FAMILY = preferred
 
 
 def apply_theme(theme: str | None = None):
@@ -512,7 +522,7 @@ def main():
     root.title(f"{constants.APP_NAME if hasattr(constants, 'APP_NAME') else 'خدمات وسيط'} - واجهة حديثة")
     root.minsize(900, 640)
 
-    load_tajawal_fonts(root)
+    load_bundled_fonts(root)
     apply_theme(current)  # configure palette + styles
     build_menu(root)
     build_ui(root)
