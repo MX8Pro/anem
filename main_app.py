@@ -36,6 +36,9 @@ cancel_retry_button: ttk.Button | None = None
 cancel_retry_flag: tk.BooleanVar | None = None
 batch_cancel_all_flag: tk.BooleanVar | None = None
 
+# Default font family (will switch to Cairo if bundled font loads)
+DEFAULT_FONT_FAMILY = "Segoe UI"
+
 
 # Color palettes (light/dark)
 PALETTE_LIGHT = {
@@ -49,6 +52,17 @@ PALETTE_LIGHT = {
     "API_BG": "#f1f3f5",
     "STATUS_BG": "#e9ecef",
     "BTN_HOVER": "#e7f1ff",
+    "SUCCESS": "#198754",
+    "SUCCESS_BG": "#d1e7dd",
+    "SUCCESS_FG": "#0f5132",
+    "WARNING": "#d39e00",
+    "WARNING_BG": "#fff3cd",
+    "WARNING_FG": "#664d03",
+    "ERROR": "#dc3545",
+    "ERROR_BG": "#f8d7da",
+    "ERROR_FG": "#842029",
+    "INFO_BG": "#cff4fc",
+    "ALLOCATION_HEADER_BG": "#e0e0e0",
 }
 PALETTE_DARK = {
     "PRIMARY_BG": "#121212",
@@ -61,12 +75,35 @@ PALETTE_DARK = {
     "API_BG": "#1f2327",
     "STATUS_BG": "#20252b",
     "BTN_HOVER": "#2a2e33",
+    "SUCCESS": "#4ade80",
+    "SUCCESS_BG": "#1d2b1f",
+    "SUCCESS_FG": "#9ae6b4",
+    "WARNING": "#ffdf70",
+    "WARNING_BG": "#30290e",
+    "WARNING_FG": "#ffec99",
+    "ERROR": "#ff6b6b",
+    "ERROR_BG": "#2d1f1f",
+    "ERROR_FG": "#ffa8a8",
+    "INFO_BG": "#1e2a38",
+    "ALLOCATION_HEADER_BG": "#2e2e2e",
 }
 
 
 def current_palette():
     theme = settings_manager.get_ui_theme() if hasattr(settings_manager, 'get_ui_theme') else 'light'
     return PALETTE_DARK if theme == 'dark' else PALETTE_LIGHT
+
+
+def load_cairo_font(root_win: tk.Tk) -> None:
+    """Attempt to load bundled Cairo font; fall back silently if unavailable."""
+    global DEFAULT_FONT_FAMILY
+    font_path = os.path.join(os.path.dirname(__file__), 'assets', 'fonts', 'Cairo-Regular.ttf')
+    if os.path.exists(font_path):
+        try:
+            tkFont.Font(root=root_win, name='Cairo', file=font_path)
+            DEFAULT_FONT_FAMILY = 'Cairo'
+        except Exception as e:
+            print(f"Font load warning: {e}")
 
 
 def apply_theme(theme: str | None = None):
@@ -87,6 +124,17 @@ def apply_theme(theme: str | None = None):
             'COLOR_API_BG': pal['API_BG'],
             'COLOR_BORDER': pal['BORDER'],
             'COLOR_STATUS_DEFAULT_BG': pal['STATUS_BG'],
+            'COLOR_SUCCESS': pal['SUCCESS'],
+            'COLOR_SUCCESS_BG': pal['SUCCESS_BG'],
+            'COLOR_SUCCESS_FG': pal['SUCCESS_FG'],
+            'COLOR_WARNING': pal['WARNING'],
+            'COLOR_WARNING_BG': pal['WARNING_BG'],
+            'COLOR_WARNING_FG': pal['WARNING_FG'],
+            'COLOR_ERROR': pal['ERROR'],
+            'COLOR_ERROR_BG': pal['ERROR_BG'],
+            'COLOR_ERROR_FG': pal['ERROR_FG'],
+            'COLOR_INFO_BG': pal['INFO_BG'],
+            'COLOR_ALLOCATION_HEADER_BG': pal['ALLOCATION_HEADER_BG'],
         })
     except Exception as e:
         print(f"Palette sync warning: {e}")
@@ -108,12 +156,11 @@ def apply_theme(theme: str | None = None):
         entry_ff, entry_fs, entry_fw = settings_manager.get_entry_font_config()
         status_ff, status_fs, status_fw = settings_manager.get_status_font_config()
     except Exception:
-        entry_ff, entry_fs, entry_fw = ('Segoe UI', 12, 'bold')
-        status_ff, status_fs, status_fw = ('Tahoma', 11, 'bold')
-
-    default_font = tkFont.Font(family='Segoe UI', size=10)
+        entry_ff, entry_fs, entry_fw = (DEFAULT_FONT_FAMILY, 12, 'bold')
+        status_ff, status_fs, status_fw = (DEFAULT_FONT_FAMILY, 11, 'bold')
+    default_font = tkFont.Font(family=DEFAULT_FONT_FAMILY, size=10)
     label_font = tkFont.Font(family=entry_ff, size=10)
-    button_font = tkFont.Font(family='Segoe UI', size=9, weight='bold')
+    button_font = tkFont.Font(family=DEFAULT_FONT_FAMILY, size=9, weight='bold')
     statusbar_font = tkFont.Font(family=status_ff, size=max(8, status_fs - 1))
 
     if style:
@@ -121,7 +168,7 @@ def apply_theme(theme: str | None = None):
         style.configure('TFrame', background=pal['PRIMARY_BG'])
         style.configure('Card.TFrame', background=pal['CARD_BG'], relief='solid', borderwidth=1)
         style.configure('TLabel', background=pal['PRIMARY_BG'], foreground=pal['TEXT_MUTED'], font=label_font)
-        style.configure('Title.TLabel', background=pal['PRIMARY_BG'], foreground=pal['ACCENT'], font=('Segoe UI', 12, 'bold'))
+        style.configure('Title.TLabel', background=pal['PRIMARY_BG'], foreground=pal['ACCENT'], font=(DEFAULT_FONT_FAMILY, 12, 'bold'))
         style.configure('TButton', background=pal['CARD_BG'], padding=(10, 6), relief='raised')
         style.map('TButton', background=[('active', pal['BTN_HOVER'])], bordercolor=[('active', pal['ACCENT'])])
         style.configure('Sidebar.TFrame', background=pal['CARD_BG'])
@@ -136,11 +183,11 @@ def apply_theme(theme: str | None = None):
         style.map('Sidebar.Danger.TButton', background=[('active', '#b02a37')])
         style.configure('Status.TLabel', background=pal['STATUS_BG'], foreground=pal['TEXT_MUTED'],
                         font=statusbar_font, padding=(8, 3))
-        style.configure('Success.Status.TLabel', background=pal['STATUS_BG'], foreground='#198754',
+        style.configure('Success.Status.TLabel', background=pal['STATUS_BG'], foreground=pal['SUCCESS'],
                         font=statusbar_font, padding=(8, 3))
-        style.configure('Warning.Status.TLabel', background=pal['STATUS_BG'], foreground='#d39e00',
+        style.configure('Warning.Status.TLabel', background=pal['STATUS_BG'], foreground=pal['WARNING'],
                         font=statusbar_font, padding=(8, 3))
-        style.configure('Error.Status.TLabel', background=pal['STATUS_BG'], foreground='#dc3545',
+        style.configure('Error.Status.TLabel', background=pal['STATUS_BG'], foreground=pal['ERROR'],
                         font=statusbar_font, padding=(8, 3))
         style.configure('Info.Status.TLabel', background=pal['STATUS_BG'], foreground=pal['ACCENT'],
                         font=statusbar_font, padding=(8, 3))
@@ -151,6 +198,12 @@ def apply_theme(theme: str | None = None):
 
     if root:
         root.configure(bg=pal['PRIMARY_BG'])
+        if status_text:
+            try:
+                s_ff, s_fs, s_fw = settings_manager.get_status_font_config()
+            except Exception:
+                s_ff, s_fs, s_fw = (DEFAULT_FONT_FAMILY, 11, 'bold')
+            gui_utils.configure_status_tags(status_text, (s_ff, s_fs, s_fw))
 
 
 def build_menu(root_win: tk.Tk):
@@ -185,8 +238,8 @@ def apply_fonts():
         e_ff, e_fs, e_fw = settings_manager.get_entry_font_config()
         s_ff, s_fs, s_fw = settings_manager.get_status_font_config()
     except Exception:
-        e_ff, e_fs, e_fw = ('Segoe UI', 12, 'bold')
-        s_ff, s_fs, s_fw = ('Tahoma', 11, 'bold')
+        e_ff, e_fs, e_fw = (DEFAULT_FONT_FAMILY, 12, 'bold')
+        s_ff, s_fs, s_fw = (DEFAULT_FONT_FAMILY, 11, 'bold')
     if nin_entry:
         nin_entry.configure(font=(e_ff, e_fs, e_fw))
     if numero_entry:
@@ -421,6 +474,7 @@ def main():
     root.title(f"{constants.APP_NAME if hasattr(constants, 'APP_NAME') else 'خدمات وسيط'} - واجهة حديثة")
     root.minsize(900, 640)
 
+    load_cairo_font(root)
     apply_theme(current)  # configure palette + styles
     build_menu(root)
     build_ui(root)
