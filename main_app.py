@@ -27,6 +27,9 @@ numero_entry: ttk.Entry | None = None
 status_text: scrolledtext.ScrolledText | None = None
 status_bar: ttk.Label | None = None
 progress_bar: ttk.Progressbar | None = None
+status_body: ttk.Frame | None = None
+toggle_button: ttk.Button | None = None
+status_collapsed: tk.BooleanVar | None = None
 
 action_buttons: list[ttk.Button] = []
 cancel_retry_button: ttk.Button | None = None
@@ -120,14 +123,31 @@ def apply_theme(theme: str | None = None):
         style.configure('TLabel', background=pal['PRIMARY_BG'], foreground=pal['TEXT_MUTED'], font=label_font)
         style.configure('Title.TLabel', background=pal['PRIMARY_BG'], foreground=pal['ACCENT'], font=('Segoe UI', 12, 'bold'))
         style.configure('TButton', background=pal['CARD_BG'], padding=(10, 6), relief='raised')
-        style.map('TButton', background=[('active', pal['BTN_HOVER'])])
-        style.configure('Accent.TButton', background=pal['ACCENT'], foreground=pal['CARD_BG'])
-        style.map('Accent.TButton', background=[('active', pal['ACCENT_DARK'])])
+        style.map('TButton', background=[('active', pal['BTN_HOVER'])], bordercolor=[('active', pal['ACCENT'])])
+        style.configure('Sidebar.TFrame', background=pal['CARD_BG'])
+        style.configure('Content.TFrame', background=pal['PRIMARY_BG'])
+        style.configure('Sidebar.TLabelframe', background=pal['CARD_BG'])
+        style.configure('Sidebar.TLabelframe.Label', background=pal['CARD_BG'], foreground=pal['ACCENT'])
+        style.configure('Sidebar.TButton', background=pal['CARD_BG'], foreground=pal['TEXT'], padding=(12, 8), relief='flat', borderwidth=1)
+        style.map('Sidebar.TButton', background=[('active', pal['BTN_HOVER'])], bordercolor=[('active', pal['ACCENT'])])
+        style.configure('Sidebar.Accent.TButton', background=pal['ACCENT'], foreground=pal['CARD_BG'], padding=(12, 8), relief='flat')
+        style.map('Sidebar.Accent.TButton', background=[('active', pal['ACCENT_DARK'])])
+        style.configure('Sidebar.Danger.TButton', background='#dc3545', foreground=pal['CARD_BG'], padding=(12, 8), relief='flat')
+        style.map('Sidebar.Danger.TButton', background=[('active', '#b02a37')])
         style.configure('Status.TLabel', background=pal['STATUS_BG'], foreground=pal['TEXT_MUTED'],
+                        font=statusbar_font, padding=(8, 3))
+        style.configure('Success.Status.TLabel', background=pal['STATUS_BG'], foreground='#198754',
+                        font=statusbar_font, padding=(8, 3))
+        style.configure('Warning.Status.TLabel', background=pal['STATUS_BG'], foreground='#d39e00',
+                        font=statusbar_font, padding=(8, 3))
+        style.configure('Error.Status.TLabel', background=pal['STATUS_BG'], foreground='#dc3545',
+                        font=statusbar_font, padding=(8, 3))
+        style.configure('Info.Status.TLabel', background=pal['STATUS_BG'], foreground=pal['ACCENT'],
                         font=statusbar_font, padding=(8, 3))
         style.configure('Status.TFrame', background=pal['STATUS_BG'])
         style.configure('TLabelframe', background=pal['CARD_BG'])
         style.configure('TLabelframe.Label', background=pal['CARD_BG'], foreground=pal['ACCENT'])
+        style.configure('Accent.Horizontal.TProgressbar', background=pal['ACCENT'], troughcolor=pal['CARD_BG'])
 
     if root:
         root.configure(bg=pal['PRIMARY_BG'])
@@ -186,6 +206,19 @@ def clear_status():
         status_text.config(state=tk.DISABLED)
 
 
+def toggle_status_area():
+    if not status_body or not toggle_button or not status_collapsed:
+        return
+    if status_collapsed.get():
+        status_body.pack(fill=tk.BOTH, expand=True, pady=(8, 0))
+        toggle_button.config(text='إخفاء ▲')
+        status_collapsed.set(False)
+    else:
+        status_body.pack_forget()
+        toggle_button.config(text='إظهار ▼')
+        status_collapsed.set(True)
+
+
 def disable_actions():
     for b in action_buttons:
         try:
@@ -206,7 +239,7 @@ def on_cancel_retry():
     if cancel_retry_flag:
         cancel_retry_flag.set(True)
     if cancel_retry_button:
-        cancel_retry_button.grid_remove()
+        cancel_retry_button.pack_forget()
 
 
 def start_request(request_type: str, clicked_btn: ttk.Button | None = None):
@@ -227,7 +260,7 @@ def start_request(request_type: str, clicked_btn: ttk.Button | None = None):
 
     disable_actions()
     if cancel_retry_button:
-        cancel_retry_button.grid(row=0, column=5, padx=5, pady=6, sticky='ew')
+        cancel_retry_button.pack(fill='x', pady=4)
     if cancel_retry_flag:
         cancel_retry_flag.set(False)
 
@@ -264,7 +297,7 @@ def start_request(request_type: str, clicked_btn: ttk.Button | None = None):
         finally:
             if cancel_retry_button:
                 try:
-                    cancel_retry_button.grid_remove()
+                    cancel_retry_button.pack_forget()
                 except Exception:
                     pass
             root.after(0, enable_actions)
@@ -275,88 +308,89 @@ def start_request(request_type: str, clicked_btn: ttk.Button | None = None):
 def build_ui(root_win: tk.Tk):
     global nin_entry, numero_entry, status_text, status_bar, progress_bar
     global cancel_retry_button, cancel_retry_flag, batch_cancel_all_flag
-    global action_buttons
+    global action_buttons, status_body, toggle_button, status_collapsed
 
     pal = current_palette()
 
-    # Top frame (content)
-    container = ttk.Frame(root_win, padding=10)
+    container = ttk.Frame(root_win)
     container.pack(expand=True, fill=tk.BOTH)
+    container.columnconfigure(1, weight=1)
+    container.rowconfigure(0, weight=1)
 
-    # Input card
-    input_card = ttk.LabelFrame(container, text=' بيانات الدخول ', padding=10)
-    input_card.pack(fill=tk.X)
+    # Sidebar
+    sidebar = ttk.Frame(container, style='Sidebar.TFrame', padding=15, width=280)
+    sidebar.grid(row=0, column=0, sticky='ns')
+    sidebar.grid_propagate(False)
 
-    ttk.Label(input_card, text='الرقم الوطني (NIN):').grid(row=0, column=0, sticky='e', padx=(0, 8), pady=6)
-    nin_entry = ttk.Entry(input_card, justify='right', width=30)
-    nin_entry.grid(row=0, column=1, sticky='ew', pady=6)
+    input_section = ttk.LabelFrame(sidebar, text=' بيانات الدخول ', padding=10, style='Sidebar.TLabelframe')
+    input_section.pack(fill=tk.X)
+
+    ttk.Label(input_section, text='الرقم الوطني (NIN):').pack(anchor='e', pady=(0, 4))
+    nin_entry = ttk.Entry(input_section, justify='right')
+    nin_entry.pack(fill=tk.X, pady=(0, 8))
     nin_entry.insert(0, settings_manager.get_last_nin() if hasattr(settings_manager, 'get_last_nin') else '')
     try:
         nin_entry.configure(validate='key', validatecommand=(root_win.register(gui_utils.validate_nin_input), '%P'))
     except Exception:
         pass
 
-    ttk.Label(input_card, text='رقم الوسيط:').grid(row=1, column=0, sticky='e', padx=(0, 8), pady=6)
-    numero_entry = ttk.Entry(input_card, justify='right', width=30)
-    numero_entry.grid(row=1, column=1, sticky='ew', pady=6)
+    ttk.Label(input_section, text='رقم الوسيط:').pack(anchor='e', pady=(0, 4))
+    numero_entry = ttk.Entry(input_section, justify='right')
+    numero_entry.pack(fill=tk.X, pady=(0, 8))
     numero_entry.insert(0, settings_manager.get_last_numero() if hasattr(settings_manager, 'get_last_numero') else '')
 
-    input_card.columnconfigure(1, weight=1)
-
-    # Actions card
-    actions_card = ttk.LabelFrame(container, text=' العمليات ', padding=10)
-    actions_card.pack(fill=tk.X, pady=(10, 0))
+    # Actions
+    actions_section = ttk.LabelFrame(sidebar, text=' العمليات ', padding=10, style='Sidebar.TLabelframe')
+    actions_section.pack(fill=tk.BOTH, expand=True, pady=(15, 0))
 
     action_buttons.clear()
-    boot_primary = {'bootstyle': 'primary'} if ttkb else {}
-    boot_success = {'bootstyle': 'success'} if ttkb else {}
-    boot_danger = {'bootstyle': 'danger'} if ttkb else {}
-    boot_secondary = {'bootstyle': 'secondary'} if ttkb else {}
-    btn_change_mobile = ttk.Button(actions_card, text='تغيير رقم الهاتف 📱',
-                                  command=lambda b=None: start_request('change_mobile', btn_change_mobile),
-                                  **boot_primary)
-    btn_alloc = ttk.Button(actions_card, text='حالة منحة البطالة 📊',
-                           command=lambda b=None: start_request('allocation_status', btn_alloc),
-                           **boot_primary)
-    accent_kwargs = boot_success if ttkb else {'style': 'Accent.TButton'}
-    btn_extend_dl = ttk.Button(actions_card, text='تجديد + تحميل + طباعة ✨',
-                               command=lambda b=None: start_request('extend_and_download', btn_extend_dl),
-                               **accent_kwargs)
-    btn_download = ttk.Button(actions_card, text='تحميل الشهادة 📄',
-                              command=lambda b=None: start_request('download_pdf', btn_download),
-                              **boot_primary)
-    btn_extend = ttk.Button(actions_card, text='تجديد/إعادة تفعيل ⏳',
-                            command=lambda b=None: start_request('extend', btn_extend),
-                            **boot_primary)
-
-    btn_change_mobile.grid(row=0, column=0, padx=5, pady=6, sticky='ew'); action_buttons.append(btn_change_mobile)
-    btn_alloc.grid(row=0, column=1, padx=5, pady=6, sticky='ew'); action_buttons.append(btn_alloc)
-    btn_extend_dl.grid(row=0, column=2, padx=5, pady=6, sticky='ew'); action_buttons.append(btn_extend_dl)
-    btn_download.grid(row=0, column=3, padx=5, pady=6, sticky='ew'); action_buttons.append(btn_download)
-    btn_extend.grid(row=0, column=4, padx=5, pady=6, sticky='ew'); action_buttons.append(btn_extend)
+    btn_change_mobile = ttk.Button(actions_section, text='تغيير رقم الهاتف 📱', style='Sidebar.TButton',
+                                  command=lambda b=None: start_request('change_mobile', btn_change_mobile))
+    btn_change_mobile.pack(fill=tk.X, pady=4); action_buttons.append(btn_change_mobile); gui_utils.add_hover_cursor(btn_change_mobile)
+    btn_alloc = ttk.Button(actions_section, text='حالة منحة البطالة 📊', style='Sidebar.TButton',
+                           command=lambda b=None: start_request('allocation_status', btn_alloc))
+    btn_alloc.pack(fill=tk.X, pady=4); action_buttons.append(btn_alloc); gui_utils.add_hover_cursor(btn_alloc)
+    btn_extend_dl = ttk.Button(actions_section, text='تجديد + تحميل + طباعة ✨', style='Sidebar.Accent.TButton',
+                               command=lambda b=None: start_request('extend_and_download', btn_extend_dl))
+    btn_extend_dl.pack(fill=tk.X, pady=4); action_buttons.append(btn_extend_dl); gui_utils.add_hover_cursor(btn_extend_dl)
+    btn_download = ttk.Button(actions_section, text='تحميل الشهادة 📄', style='Sidebar.TButton',
+                              command=lambda b=None: start_request('download_pdf', btn_download))
+    btn_download.pack(fill=tk.X, pady=4); action_buttons.append(btn_download); gui_utils.add_hover_cursor(btn_download)
+    btn_extend = ttk.Button(actions_section, text='تجديد/إعادة تفعيل ⏳', style='Sidebar.TButton',
+                            command=lambda b=None: start_request('extend', btn_extend))
+    btn_extend.pack(fill=tk.X, pady=4); action_buttons.append(btn_extend); gui_utils.add_hover_cursor(btn_extend)
 
     cancel_retry_flag = tk.BooleanVar(value=False)
     batch_cancel_all_flag = tk.BooleanVar(value=False)
-    cancel_retry_button = ttk.Button(actions_card, text='إلغاء المحاولات ✖️',
-                                    command=on_cancel_retry,
-                                    **boot_danger)
-    cancel_retry_button.grid(row=0, column=5, padx=5, pady=6, sticky='ew')
-    cancel_retry_button.grid_remove()
+    cancel_retry_button = ttk.Button(actions_section, text='إلغاء المحاولات ✖️', style='Sidebar.Danger.TButton',
+                                    command=on_cancel_retry)
+    cancel_retry_button.pack(fill=tk.X, pady=4)
+    cancel_retry_button.pack_forget()
+    gui_utils.add_hover_cursor(cancel_retry_button)
 
-    for i in range(6):
-        actions_card.columnconfigure(i, weight=1)
+    # Main content
+    content = ttk.Frame(container, style='Content.TFrame', padding=15)
+    content.grid(row=0, column=1, sticky='nsew')
 
-    # Status area
-    status_card = ttk.LabelFrame(container, text=' الحالة والنتائج ', padding=10)
-    status_card.pack(expand=True, fill=tk.BOTH, pady=(10, 0))
+    status_frame = ttk.Frame(content, style='Card.TFrame', padding=10)
+    status_frame.pack(expand=True, fill=tk.BOTH)
 
-    header = ttk.Frame(status_card)
+    header = ttk.Frame(status_frame, style='Card.TFrame')
     header.pack(fill=tk.X)
     ttk.Label(header, text='سجل العمليات', style='Title.TLabel').pack(side=tk.LEFT)
-    ttk.Button(header, text='تنظيف', command=clear_status, **boot_secondary).pack(side=tk.RIGHT)
+    clear_btn = ttk.Button(header, text='تنظيف', command=clear_status, style='Sidebar.TButton')
+    clear_btn.pack(side=tk.RIGHT, padx=(4, 0))
+    gui_utils.add_hover_cursor(clear_btn)
+    toggle_button = ttk.Button(header, text='إخفاء ▲', command=toggle_status_area, style='Sidebar.TButton')
+    toggle_button.pack(side=tk.RIGHT, padx=(4, 0))
+    gui_utils.add_hover_cursor(toggle_button)
 
-    status_text = scrolledtext.ScrolledText(status_card, wrap=tk.WORD, height=14, relief='solid', borderwidth=1)
-    status_text.pack(expand=True, fill=tk.BOTH, pady=(8, 0))
+    status_collapsed = tk.BooleanVar(value=False)
+    status_body = ttk.Frame(status_frame)
+    status_body.pack(fill=tk.BOTH, expand=True, pady=(8, 0))
+
+    status_text = scrolledtext.ScrolledText(status_body, wrap=tk.WORD, height=14, relief='solid', borderwidth=1)
+    status_text.pack(expand=True, fill=tk.BOTH)
 
     # Configure tags using gui_utils
     try:
@@ -370,7 +404,7 @@ def build_ui(root_win: tk.Tk):
     status_bar_frame.pack(fill=tk.X, side=tk.BOTTOM)
     status_bar = ttk.Label(status_bar_frame, text='جاهز', style='Status.TLabel')
     status_bar.pack(side=tk.LEFT, fill=tk.X, expand=True)
-    progress_bar = ttk.Progressbar(status_bar_frame, mode='indeterminate', length=160)
+    progress_bar = ttk.Progressbar(status_bar_frame, mode='indeterminate', length=160, style='Accent.Horizontal.TProgressbar')
     progress_bar.pack(side=tk.RIGHT, padx=6, pady=3)
 
 

@@ -104,6 +104,15 @@ def attach_tooltip(widget, text: str):
         print(f"Tooltip attach failed: {e}")
 
 
+def add_hover_cursor(widget):
+    """Show a hand cursor when hovering over a widget."""
+    try:
+        widget.bind("<Enter>", lambda e: widget.configure(cursor="hand2"))
+        widget.bind("<Leave>", lambda e: widget.configure(cursor=""))
+    except Exception as e:
+        print(f"Hover cursor binding failed: {e}")
+
+
 # --- Toast Notification ---
 def show_toast(root, text: str, duration_ms: int = 2500):
     """Shows a small transient toast message at bottom-right of the root window."""
@@ -214,6 +223,34 @@ def hide_widget(root, widget):
             except Exception as e:
                 print(f"Unexpected error hiding widget {w} with grid: {e}")
     schedule_gui_update(root, _hide, widget)
+
+
+def _hex_to_rgb(value: str) -> tuple[int, int, int]:
+    value = value.lstrip('#')
+    return tuple(int(value[i:i+2], 16) for i in (0, 2, 4))
+
+
+def _rgb_to_hex(rgb: tuple[int, int, int]) -> str:
+    return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+
+
+def _fade_tag(widget, tag, start_color, end_color, start_idx, end_idx, steps: int = 10, delay: int = 30):
+    """Gradually transitions a tag's foreground from start_color to end_color."""
+    start_rgb = _hex_to_rgb(start_color)
+    end_rgb = _hex_to_rgb(end_color)
+    delta = [(e - s) / steps for s, e in zip(start_rgb, end_rgb)]
+
+    def _step(i: int = 0):
+        if not widget.winfo_exists():
+            return
+        rgb = [int(start_rgb[j] + delta[j] * i) for j in range(3)]
+        widget.tag_configure(tag, foreground=_rgb_to_hex(tuple(rgb)))
+        if i < steps:
+            widget.after(delay, _step, i + 1)
+        else:
+            widget.tag_remove(tag, start_idx, end_idx)
+
+    _step()
 
 
 # --- Function to enable/disable buttons ---
@@ -332,8 +369,24 @@ def update_status_text(root, status_text_widget, text, clear=False, tags=None, a
 
             if clear_flag:
                 widget.delete('1.0', tk.END)
+            start_index = widget.index(tk.END)
             widget.insert(tk.END, final_text, cleaned_tags)
+            end_index = widget.index(tk.END)
             widget.see(tk.END)
+
+            # Fade-in animation for new text
+            try:
+                widget.tag_add('fade_tmp', start_index, end_index)
+                widget.tag_configure('fade_tmp', foreground=COLOR_STATUS_DEFAULT_BG)
+                final_fg = COLOR_TEXT
+                for t in reversed(cleaned_tags):
+                    fg = widget.tag_cget(t, 'foreground')
+                    if fg:
+                        final_fg = fg
+                        break
+                _fade_tag(widget, 'fade_tmp', COLOR_STATUS_DEFAULT_BG, final_fg, start_index, end_index)
+            except Exception as e:
+                print(f"Fade-in error: {e}")
 
             if is_disabled:
                  widget.config(state=tk.DISABLED)
