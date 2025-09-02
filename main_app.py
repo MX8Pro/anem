@@ -7,7 +7,8 @@ import time
 try:
     import ttkbootstrap as ttkb
     from ttkbootstrap import ttk
-except Exception:  # pragma: no cover - safe fallback when lib missing
+except Exception:
+    print('ttkbootstrap is required for the modern interface. Install with: pip install ttkbootstrap')
     ttkb = None
     from tkinter import ttk
 
@@ -42,49 +43,49 @@ DEFAULT_FONT_FAMILY = "Segoe UI"
 
 # Color palettes (light/dark)
 PALETTE_LIGHT = {
-    "PRIMARY_BG": "#f5f7fb",
+    "PRIMARY_BG": "#f0f2f5",
     "CARD_BG": "#ffffff",
-    "TEXT": "#212529",
+    "TEXT": "#1a1a1a",
     "TEXT_MUTED": "#6c757d",
     "ACCENT": "#0d6efd",
     "ACCENT_DARK": "#0a58ca",
-    "BORDER": "#dee2e6",
-    "API_BG": "#f1f3f5",
+    "BORDER": "#ced4da",
+    "API_BG": "#f8f9fa",
     "STATUS_BG": "#e9ecef",
-    "BTN_HOVER": "#e7f1ff",
+    "BTN_HOVER": "#e2e6ea",
     "SUCCESS": "#198754",
     "SUCCESS_BG": "#d1e7dd",
     "SUCCESS_FG": "#0f5132",
-    "WARNING": "#d39e00",
+    "WARNING": "#ffc107",
     "WARNING_BG": "#fff3cd",
     "WARNING_FG": "#664d03",
     "ERROR": "#dc3545",
     "ERROR_BG": "#f8d7da",
     "ERROR_FG": "#842029",
-    "INFO_BG": "#cff4fc",
-    "ALLOCATION_HEADER_BG": "#e0e0e0",
+    "INFO_BG": "#d1ecf1",
+    "ALLOCATION_HEADER_BG": "#dee2e6",
 }
 PALETTE_DARK = {
-    "PRIMARY_BG": "#121212",
-    "CARD_BG": "#1e1e1e",
-    "TEXT": "#e6e6e6",
-    "TEXT_MUTED": "#b0b0b0",
-    "ACCENT": "#4da3ff",
-    "ACCENT_DARK": "#2b7dd8",
-    "BORDER": "#2c2f33",
-    "API_BG": "#1f2327",
-    "STATUS_BG": "#20252b",
-    "BTN_HOVER": "#2a2e33",
-    "SUCCESS": "#4ade80",
-    "SUCCESS_BG": "#1d2b1f",
-    "SUCCESS_FG": "#9ae6b4",
-    "WARNING": "#ffdf70",
-    "WARNING_BG": "#30290e",
-    "WARNING_FG": "#ffec99",
+    "PRIMARY_BG": "#181a1b",
+    "CARD_BG": "#212529",
+    "TEXT": "#f8f9fa",
+    "TEXT_MUTED": "#ced4da",
+    "ACCENT": "#4dabf7",
+    "ACCENT_DARK": "#1c7ed6",
+    "BORDER": "#343a40",
+    "API_BG": "#1f2224",
+    "STATUS_BG": "#262a2e",
+    "BTN_HOVER": "#343a40",
+    "SUCCESS": "#51cf66",
+    "SUCCESS_BG": "#13281e",
+    "SUCCESS_FG": "#b2f2bb",
+    "WARNING": "#ffd43b",
+    "WARNING_BG": "#30250d",
+    "WARNING_FG": "#ffe066",
     "ERROR": "#ff6b6b",
     "ERROR_BG": "#2d1f1f",
     "ERROR_FG": "#ffa8a8",
-    "INFO_BG": "#1e2a38",
+    "INFO_BG": "#1c2c3a",
     "ALLOCATION_HEADER_BG": "#2e2e2e",
 }
 
@@ -163,12 +164,23 @@ def apply_theme(theme: str | None = None):
         except Exception:
             pass
 
+    if root:
+        try:
+            for fname in ("TkDefaultFont","TkTextFont","TkMenuFont","TkHeadingFont","TkCaptionFont","TkSmallCaptionFont","TkIconFont"):
+                tkFont.nametofont(fname).configure(family=DEFAULT_FONT_FAMILY)
+        except Exception as e:
+            print(f"Font apply warning: {e}")
+
     try:
         entry_ff, entry_fs, entry_fw = settings_manager.get_entry_font_config()
         status_ff, status_fs, status_fw = settings_manager.get_status_font_config()
     except Exception:
         entry_ff, entry_fs, entry_fw = (DEFAULT_FONT_FAMILY, 12, 'bold')
         status_ff, status_fs, status_fw = (DEFAULT_FONT_FAMILY, 11, 'bold')
+    if entry_ff == 'Segoe UI':
+        entry_ff = DEFAULT_FONT_FAMILY
+    if status_ff == 'Segoe UI':
+        status_ff = DEFAULT_FONT_FAMILY
     default_font = tkFont.Font(family=DEFAULT_FONT_FAMILY, size=10)
     label_font = tkFont.Font(family=entry_ff, size=10)
     button_font = tkFont.Font(family=DEFAULT_FONT_FAMILY, size=9, weight='bold')
@@ -180,17 +192,17 @@ def apply_theme(theme: str | None = None):
         style.configure('Card.TFrame', background=pal['CARD_BG'], relief='solid', borderwidth=1)
         style.configure('TLabel', background=pal['PRIMARY_BG'], foreground=pal['TEXT_MUTED'], font=label_font)
         style.configure('Title.TLabel', background=pal['PRIMARY_BG'], foreground=pal['ACCENT'], font=(DEFAULT_FONT_FAMILY, 12, 'bold'))
-        style.configure('TButton', background=pal['CARD_BG'], padding=(10, 6), relief='raised')
+        style.configure('TButton', background=pal['CARD_BG'], padding=(10, 6), relief='raised', font=button_font)
         style.map('TButton', background=[('active', pal['BTN_HOVER'])], bordercolor=[('active', pal['ACCENT'])])
         style.configure('Sidebar.TFrame', background=pal['CARD_BG'])
         style.configure('Content.TFrame', background=pal['PRIMARY_BG'])
         style.configure('Sidebar.TLabelframe', background=pal['CARD_BG'])
         style.configure('Sidebar.TLabelframe.Label', background=pal['CARD_BG'], foreground=pal['ACCENT'])
-        style.configure('Sidebar.TButton', background=pal['CARD_BG'], foreground=pal['TEXT'], padding=(12, 8), relief='flat', borderwidth=1)
+        style.configure('Sidebar.TButton', background=pal['CARD_BG'], foreground=pal['TEXT'], padding=(12, 8), relief='flat', borderwidth=1, font=button_font)
         style.map('Sidebar.TButton', background=[('active', pal['BTN_HOVER'])], bordercolor=[('active', pal['ACCENT'])])
-        style.configure('Sidebar.Accent.TButton', background=pal['ACCENT'], foreground=pal['CARD_BG'], padding=(12, 8), relief='flat')
+        style.configure('Sidebar.Accent.TButton', background=pal['ACCENT'], foreground=pal['CARD_BG'], padding=(12, 8), relief='flat', font=button_font)
         style.map('Sidebar.Accent.TButton', background=[('active', pal['ACCENT_DARK'])])
-        style.configure('Sidebar.Danger.TButton', background='#dc3545', foreground=pal['CARD_BG'], padding=(12, 8), relief='flat')
+        style.configure('Sidebar.Danger.TButton', background='#dc3545', foreground=pal['CARD_BG'], padding=(12, 8), relief='flat', font=button_font)
         style.map('Sidebar.Danger.TButton', background=[('active', '#b02a37')])
         style.configure('Status.TLabel', background=pal['STATUS_BG'], foreground=pal['TEXT_MUTED'],
                         font=statusbar_font, padding=(8, 3))
@@ -251,6 +263,10 @@ def apply_fonts():
     except Exception:
         e_ff, e_fs, e_fw = (DEFAULT_FONT_FAMILY, 12, 'bold')
         s_ff, s_fs, s_fw = (DEFAULT_FONT_FAMILY, 11, 'bold')
+    if e_ff == 'Segoe UI':
+        e_ff = DEFAULT_FONT_FAMILY
+    if s_ff == 'Segoe UI':
+        s_ff = DEFAULT_FONT_FAMILY
     if nin_entry:
         nin_entry.configure(font=(e_ff, e_fs, e_fw))
     if numero_entry:

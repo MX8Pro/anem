@@ -5,12 +5,12 @@ Modern Tkinter application styled with [ttkbootstrap](https://github.com/israel-
 ## Requirements
 
 - Python 3
-- `ttkbootstrap` (optional but recommended for modern theme)
+- `ttkbootstrap` (required for modern theme)
 
 Install dependencies:
 
 ```bash
-pip install ttkbootstrap
+pip install -r requirements.txt
 ```
 
 ## Running
@@ -24,4 +24,4 @@ The latest redesign introduces a sidebar-driven layout, animated status updates,
 
 ### Fonts
 
-The UI attempts to load the bundled [Cairo](https://fonts.google.com/specimen/Cairo) font from `assets/fonts/Cairo-Regular.ttf` on startup. This allows the application to use Cairo without requiring it to be installed on the system. If the font cannot be loaded, the interface gracefully falls back to standard system fonts.
+The UI loads the bundled [Cairo](https://fonts.google.com/specimen/Cairo) font from `assets/fonts/Cairo-Regular.ttf` at startup and applies it to all widgets. If loading fails, standard system fonts are used.

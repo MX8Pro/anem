@@ -26,25 +26,25 @@ LAST_ERROR_DETAILS = {"title": "", "message": ""}
 status_bar_reset_timer = None
 
 # --- Color Palette (Mirrored from main_app.py for tag configuration) ---
-COLOR_PRIMARY_BG = "#f5f7fb"
+COLOR_PRIMARY_BG = "#f0f2f5"
 COLOR_SECONDARY_BG = "#ffffff"
-COLOR_TEXT = "#212529"
+COLOR_TEXT = "#1a1a1a"
 COLOR_TEXT_SECONDARY = "#6c757d"
 COLOR_ACCENT = "#0d6efd"
 COLOR_ACCENT_DARK = "#0a58ca"
 COLOR_SUCCESS = "#198754"
 COLOR_SUCCESS_BG = "#d1e7dd"  # Lighter green background
 COLOR_SUCCESS_FG = "#0f5132"  # Darker green text
-COLOR_WARNING = "#d39e00"
+COLOR_WARNING = "#ffc107"
 COLOR_WARNING_BG = "#fff3cd"  # Lighter yellow background
 COLOR_WARNING_FG = "#664d03"  # Darker yellow text
 COLOR_ERROR = "#dc3545"
 COLOR_ERROR_BG = "#f8d7da"  # Lighter red background
 COLOR_ERROR_FG = "#842029"  # Darker red text
-COLOR_INFO_BG = "#cff4fc"
-COLOR_API_BG = "#f1f3f5"
-COLOR_BORDER = "#dee2e6"
-COLOR_ALLOCATION_HEADER_BG = "#e0e0e0"
+COLOR_INFO_BG = "#d1ecf1"
+COLOR_API_BG = "#f8f9fa"
+COLOR_BORDER = "#ced4da"
+COLOR_ALLOCATION_HEADER_BG = "#dee2e6"
 COLOR_STATUS_DEFAULT_BG = '#e9ecef'
 # --------------------------------------------------------------------
 
