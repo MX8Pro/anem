@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import scrolledtext, Menu, font as tkFont, messagebox, simpledialog
 import threading
 import os
+import sys
 import time
 
 try:
@@ -37,7 +38,7 @@ cancel_retry_button: ttk.Button | None = None
 cancel_retry_flag: tk.BooleanVar | None = None
 batch_cancel_all_flag: tk.BooleanVar | None = None
 
-# Default font family (will switch to Cairo if bundled font loads)
+# Default font family (will switch to Tajawal if bundled fonts load)
 DEFAULT_FONT_FAMILY = "Segoe UI"
 
 
@@ -95,27 +96,36 @@ def current_palette():
     return PALETTE_DARK if theme == 'dark' else PALETTE_LIGHT
 
 
-def load_cairo_font(root_win: tk.Tk) -> None:
-    """Attempt to load bundled Cairo font; fall back silently if unavailable."""
+def resource_path(*parts: str) -> str:
+    """Return absolute path to resource, works for dev and PyInstaller."""
+    base = getattr(sys, "_MEIPASS", os.path.dirname(__file__))
+    return os.path.join(base, *parts)
+
+
+def load_tajawal_fonts(root_win: tk.Tk) -> None:
+    """Attempt to load bundled Tajawal fonts; fall back silently if unavailable."""
     global DEFAULT_FONT_FAMILY
-    font_path = os.path.join(os.path.dirname(__file__), 'assets', 'fonts', 'Cairo-Regular.ttf')
-    if not os.path.exists(font_path):
+    fonts_dir = resource_path('assets', 'fonts')
+    if not os.path.isdir(fonts_dir):
         return
-    try:
-        if os.name == 'nt':
-            # On Windows, register the font privately for the session
-            from ctypes import windll
-            FR_PRIVATE = 0x10
-            if windll.gdi32.AddFontResourceExW(font_path, FR_PRIVATE, 0):
-                DEFAULT_FONT_FAMILY = 'Cairo'
+    loaded_any = False
+    for fname in os.listdir(fonts_dir):
+        if not fname.lower().endswith('.ttf') or 'tajawal' not in fname.lower():
+            continue
+        fpath = os.path.join(fonts_dir, fname)
+        try:
+            if os.name == 'nt':
+                from ctypes import windll
+                FR_PRIVATE = 0x10
+                if windll.gdi32.AddFontResourceExW(fpath, FR_PRIVATE, 0):
+                    loaded_any = True
             else:
-                print("Font load warning: AddFontResourceExW failed")
-        else:
-            # Attempt to create a Tk font using the file (may not be supported on all builds)
-            root_win.tk.call('font', 'create', 'Cairo', '-file', font_path)
-            DEFAULT_FONT_FAMILY = 'Cairo'
-    except Exception as e:
-        print(f"Font load warning: {e}")
+                root_win.tk.call('font', 'create', fname, '-file', fpath)
+                loaded_any = True
+        except Exception as e:
+            print(f"Font load warning for {fname}: {e}")
+    if loaded_any:
+        DEFAULT_FONT_FAMILY = 'Tajawal'
 
 
 def apply_theme(theme: str | None = None):
@@ -502,7 +512,7 @@ def main():
     root.title(f"{constants.APP_NAME if hasattr(constants, 'APP_NAME') else 'خدمات وسيط'} - واجهة حديثة")
     root.minsize(900, 640)
 
-    load_cairo_font(root)
+    load_tajawal_fonts(root)
     apply_theme(current)  # configure palette + styles
     build_menu(root)
     build_ui(root)
