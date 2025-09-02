@@ -1,8 +1,15 @@
 import tkinter as tk
-from tkinter import ttk, scrolledtext, Menu, font as tkFont, messagebox, simpledialog
+from tkinter import scrolledtext, Menu, font as tkFont, messagebox, simpledialog
 import threading
 import os
 import time
+
+try:
+    import ttkbootstrap as ttkb
+    from ttkbootstrap import ttk
+except Exception:  # pragma: no cover - safe fallback when lib missing
+    ttkb = None
+    from tkinter import ttk
 
 # Local modules
 import constants
@@ -14,6 +21,7 @@ import api_client
 
 # Globals (widgets/state)
 root: tk.Tk | None = None
+style: ttk.Style | None = None
 nin_entry: ttk.Entry | None = None
 numero_entry: ttk.Entry | None = None
 status_text: scrolledtext.ScrolledText | None = None
@@ -59,13 +67,13 @@ def current_palette():
 
 
 def apply_theme(theme: str | None = None):
+    """Apply a modern theme using ttkbootstrap when available."""
+    global style
     pal = current_palette() if not theme else (PALETTE_DARK if theme == 'dark' else PALETTE_LIGHT)
     try:
-        if theme:
-            if hasattr(settings_manager, 'set_ui_theme'):
-                settings_manager.set_ui_theme(theme)
-                settings_manager.save_settings()
-        # Sync gui_utils palette keys used there
+        if theme and hasattr(settings_manager, 'set_ui_theme'):
+            settings_manager.set_ui_theme(theme)
+            settings_manager.save_settings()
         gui_utils.set_theme_palette({
             'COLOR_PRIMARY_BG': pal['PRIMARY_BG'],
             'COLOR_SECONDARY_BG': pal['CARD_BG'],
@@ -80,16 +88,19 @@ def apply_theme(theme: str | None = None):
     except Exception as e:
         print(f"Palette sync warning: {e}")
 
-    # ttk styles
-    style = ttk.Style()
-    try:
-        # pick a native theme as base
-        if 'clam' in style.theme_names():
-            style.theme_use('clam')
-    except Exception:
-        pass
+    if ttkb and style:
+        themename = 'darkly' if theme == 'dark' else 'flatly'
+        try:
+            style.theme_use(themename)
+        except Exception:
+            pass
+    elif style:
+        try:
+            if 'clam' in style.theme_names():
+                style.theme_use('clam')
+        except Exception:
+            pass
 
-    # fonts
     try:
         entry_ff, entry_fs, entry_fw = settings_manager.get_entry_font_config()
         status_ff, status_fs, status_fw = settings_manager.get_status_font_config()
@@ -102,19 +113,21 @@ def apply_theme(theme: str | None = None):
     button_font = tkFont.Font(family='Segoe UI', size=9, weight='bold')
     statusbar_font = tkFont.Font(family=status_ff, size=max(8, status_fs - 1))
 
-    style.configure('.', background=pal['PRIMARY_BG'], foreground=pal['TEXT'], font=default_font)
-    style.configure('TFrame', background=pal['PRIMARY_BG'])
-    style.configure('Card.TFrame', background=pal['CARD_BG'], relief='solid', borderwidth=1)
-    style.configure('TLabel', background=pal['PRIMARY_BG'], foreground=pal['TEXT_MUTED'], font=label_font)
-    style.configure('Title.TLabel', background=pal['PRIMARY_BG'], foreground=pal['ACCENT'], font=('Segoe UI', 12, 'bold'))
-    style.configure('TButton', background=pal['CARD_BG'], padding=(10, 6), relief='raised')
-    style.map('TButton', background=[('active', pal['BTN_HOVER'])])
-    style.configure('Accent.TButton', background=pal['ACCENT'], foreground=pal['CARD_BG'])
-    style.map('Accent.TButton', background=[('active', pal['ACCENT_DARK'])])
-    style.configure('Status.TLabel', background=pal['STATUS_BG'], foreground=pal['TEXT_MUTED'], font=statusbar_font, padding=(8, 3))
-    style.configure('Status.TFrame', background=pal['STATUS_BG'])
-    style.configure('TLabelframe', background=pal['CARD_BG'])
-    style.configure('TLabelframe.Label', background=pal['CARD_BG'], foreground=pal['ACCENT'])
+    if style:
+        style.configure('.', background=pal['PRIMARY_BG'], foreground=pal['TEXT'], font=default_font)
+        style.configure('TFrame', background=pal['PRIMARY_BG'])
+        style.configure('Card.TFrame', background=pal['CARD_BG'], relief='solid', borderwidth=1)
+        style.configure('TLabel', background=pal['PRIMARY_BG'], foreground=pal['TEXT_MUTED'], font=label_font)
+        style.configure('Title.TLabel', background=pal['PRIMARY_BG'], foreground=pal['ACCENT'], font=('Segoe UI', 12, 'bold'))
+        style.configure('TButton', background=pal['CARD_BG'], padding=(10, 6), relief='raised')
+        style.map('TButton', background=[('active', pal['BTN_HOVER'])])
+        style.configure('Accent.TButton', background=pal['ACCENT'], foreground=pal['CARD_BG'])
+        style.map('Accent.TButton', background=[('active', pal['ACCENT_DARK'])])
+        style.configure('Status.TLabel', background=pal['STATUS_BG'], foreground=pal['TEXT_MUTED'],
+                        font=statusbar_font, padding=(8, 3))
+        style.configure('Status.TFrame', background=pal['STATUS_BG'])
+        style.configure('TLabelframe', background=pal['CARD_BG'])
+        style.configure('TLabelframe.Label', background=pal['CARD_BG'], foreground=pal['ACCENT'])
 
     if root:
         root.configure(bg=pal['PRIMARY_BG'])
@@ -295,11 +308,26 @@ def build_ui(root_win: tk.Tk):
     actions_card.pack(fill=tk.X, pady=(10, 0))
 
     action_buttons.clear()
-    btn_change_mobile = ttk.Button(actions_card, text='تغيير رقم الهاتف 📱', command=lambda b=None: start_request('change_mobile', btn_change_mobile))
-    btn_alloc = ttk.Button(actions_card, text='حالة منحة البطالة 📊', command=lambda b=None: start_request('allocation_status', btn_alloc))
-    btn_extend_dl = ttk.Button(actions_card, text='تجديد + تحميل + طباعة ✨', style='Accent.TButton', command=lambda b=None: start_request('extend_and_download', btn_extend_dl))
-    btn_download = ttk.Button(actions_card, text='تحميل الشهادة 📄', command=lambda b=None: start_request('download_pdf', btn_download))
-    btn_extend = ttk.Button(actions_card, text='تجديد/إعادة تفعيل ⏳', command=lambda b=None: start_request('extend', btn_extend))
+    boot_primary = {'bootstyle': 'primary'} if ttkb else {}
+    boot_success = {'bootstyle': 'success'} if ttkb else {}
+    boot_danger = {'bootstyle': 'danger'} if ttkb else {}
+    boot_secondary = {'bootstyle': 'secondary'} if ttkb else {}
+    btn_change_mobile = ttk.Button(actions_card, text='تغيير رقم الهاتف 📱',
+                                  command=lambda b=None: start_request('change_mobile', btn_change_mobile),
+                                  **boot_primary)
+    btn_alloc = ttk.Button(actions_card, text='حالة منحة البطالة 📊',
+                           command=lambda b=None: start_request('allocation_status', btn_alloc),
+                           **boot_primary)
+    accent_kwargs = boot_success if ttkb else {'style': 'Accent.TButton'}
+    btn_extend_dl = ttk.Button(actions_card, text='تجديد + تحميل + طباعة ✨',
+                               command=lambda b=None: start_request('extend_and_download', btn_extend_dl),
+                               **accent_kwargs)
+    btn_download = ttk.Button(actions_card, text='تحميل الشهادة 📄',
+                              command=lambda b=None: start_request('download_pdf', btn_download),
+                              **boot_primary)
+    btn_extend = ttk.Button(actions_card, text='تجديد/إعادة تفعيل ⏳',
+                            command=lambda b=None: start_request('extend', btn_extend),
+                            **boot_primary)
 
     btn_change_mobile.grid(row=0, column=0, padx=5, pady=6, sticky='ew'); action_buttons.append(btn_change_mobile)
     btn_alloc.grid(row=0, column=1, padx=5, pady=6, sticky='ew'); action_buttons.append(btn_alloc)
@@ -309,7 +337,9 @@ def build_ui(root_win: tk.Tk):
 
     cancel_retry_flag = tk.BooleanVar(value=False)
     batch_cancel_all_flag = tk.BooleanVar(value=False)
-    cancel_retry_button = ttk.Button(actions_card, text='إلغاء المحاولات ✖️', style='TButton', command=on_cancel_retry)
+    cancel_retry_button = ttk.Button(actions_card, text='إلغاء المحاولات ✖️',
+                                    command=on_cancel_retry,
+                                    **boot_danger)
     cancel_retry_button.grid(row=0, column=5, padx=5, pady=6, sticky='ew')
     cancel_retry_button.grid_remove()
 
@@ -323,7 +353,7 @@ def build_ui(root_win: tk.Tk):
     header = ttk.Frame(status_card)
     header.pack(fill=tk.X)
     ttk.Label(header, text='سجل العمليات', style='Title.TLabel').pack(side=tk.LEFT)
-    ttk.Button(header, text='تنظيف', command=clear_status).pack(side=tk.RIGHT)
+    ttk.Button(header, text='تنظيف', command=clear_status, **boot_secondary).pack(side=tk.RIGHT)
 
     status_text = scrolledtext.ScrolledText(status_card, wrap=tk.WORD, height=14, relief='solid', borderwidth=1)
     status_text.pack(expand=True, fill=tk.BOTH, pady=(8, 0))
@@ -345,12 +375,19 @@ def build_ui(root_win: tk.Tk):
 
 
 def main():
-    global root
-    root = tk.Tk()
+    global root, style
+    current = settings_manager.get_ui_theme() if hasattr(settings_manager, 'get_ui_theme') else 'light'
+    if ttkb:
+        themename = 'darkly' if current == 'dark' else 'flatly'
+        root = ttkb.Window(themename=themename)
+        style = root.style
+    else:
+        root = tk.Tk()
+        style = ttk.Style()
     root.title(f"{constants.APP_NAME if hasattr(constants, 'APP_NAME') else 'خدمات وسيط'} - واجهة حديثة")
     root.minsize(900, 640)
 
-    apply_theme()  # configure palette + styles
+    apply_theme(current)  # configure palette + styles
     build_menu(root)
     build_ui(root)
     apply_fonts()
