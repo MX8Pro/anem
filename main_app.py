@@ -98,12 +98,23 @@ def load_cairo_font(root_win: tk.Tk) -> None:
     """Attempt to load bundled Cairo font; fall back silently if unavailable."""
     global DEFAULT_FONT_FAMILY
     font_path = os.path.join(os.path.dirname(__file__), 'assets', 'fonts', 'Cairo-Regular.ttf')
-    if os.path.exists(font_path):
-        try:
-            tkFont.Font(root=root_win, name='Cairo', file=font_path)
+    if not os.path.exists(font_path):
+        return
+    try:
+        if os.name == 'nt':
+            # On Windows, register the font privately for the session
+            from ctypes import windll
+            FR_PRIVATE = 0x10
+            if windll.gdi32.AddFontResourceExW(font_path, FR_PRIVATE, 0):
+                DEFAULT_FONT_FAMILY = 'Cairo'
+            else:
+                print("Font load warning: AddFontResourceExW failed")
+        else:
+            # Attempt to create a Tk font using the file (may not be supported on all builds)
+            root_win.tk.call('font', 'create', 'Cairo', '-file', font_path)
             DEFAULT_FONT_FAMILY = 'Cairo'
-        except Exception as e:
-            print(f"Font load warning: {e}")
+    except Exception as e:
+        print(f"Font load warning: {e}")
 
 
 def apply_theme(theme: str | None = None):
@@ -459,6 +470,7 @@ def build_ui(root_win: tk.Tk):
     status_bar.pack(side=tk.LEFT, fill=tk.X, expand=True)
     progress_bar = ttk.Progressbar(status_bar_frame, mode='indeterminate', length=160, style='Accent.Horizontal.TProgressbar')
     progress_bar.pack(side=tk.RIGHT, padx=6, pady=3)
+    progress_bar.pack_forget()  # Hidden until a task starts
 
 
 def main():

@@ -502,10 +502,9 @@ def start_progressbar(root, progress_bar_widget, status_label_widget):
     def _start(pb, lbl):
         if pb and pb.winfo_exists() and lbl and lbl.master and lbl.master.winfo_exists():
             try:
-                pb.grid(row=0, column=1, sticky="ew", padx=(5,0))
-                lbl.master.columnconfigure(0, weight=0) # Status label takes less space
-                lbl.master.columnconfigure(1, weight=1) # Progress bar takes more
-                pb.start(10) # Start animation
+                # Use pack to avoid conflicts with existing geometry manager
+                pb.pack(side=tk.RIGHT, padx=6, pady=3)
+                pb.start(10)  # Start animation
                 print("Progress bar started.")
             except tk.TclError as e:
                 print(f"Error starting progress bar: {e}")
@@ -516,13 +515,11 @@ def stop_progressbar(root, progress_bar_widget, status_label_widget):
     def _stop(pb, lbl):
         if pb and pb.winfo_exists() and lbl and lbl.master and lbl.master.winfo_exists():
             try:
-                pb.stop() # Stop animation
-                pb.grid_remove() # Hide it
-                lbl.master.columnconfigure(0, weight=1) # Status label takes full width again
-                lbl.master.columnconfigure(1, weight=0) # Progress bar takes no space
+                pb.stop()  # Stop animation
+                pb.pack_forget()  # Hide it
                 print("Progress bar stopped.")
             except tk.TclError as e:
-                 print(f"Error stopping progress bar: {e}")
+                print(f"Error stopping progress bar: {e}")
     schedule_gui_update(root, _stop, progress_bar_widget, status_label_widget)
 
 
