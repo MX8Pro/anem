@@ -19,8 +19,8 @@ pip install -r requirements.txt
 python main_app.py
 ```
 
-The interface supports light and dark themes and uses Bootstrap-inspired styling for a more professional look.
-The latest redesign introduces an accent-colored top bar with a quick theme toggle, a sidebar-driven layout, animated status updates, and a collapsible results panel for a more dynamic experience.
+The interface supports light and dark themes and uses a refined corporate palette for a professional feel.
+The latest redesign introduces an accent-colored top bar with a quick theme toggle, a sidebar-driven layout, animated status updates, and a collapsible results panel for a modern, spacious experience.
 
 ### Fonts
 

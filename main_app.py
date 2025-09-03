@@ -44,17 +44,18 @@ DEFAULT_FONT_FAMILY = "Segoe UI"
 
 
 # Color palettes (light/dark)
+# These hues were refined to mimic clean corporate dashboards.
 PALETTE_LIGHT = {
-    "PRIMARY_BG": "#f0f2f5",
-    "CARD_BG": "#ffffff",
-    "TEXT": "#1a1a1a",
-    "TEXT_MUTED": "#6c757d",
-    "ACCENT": "#0d6efd",
-    "ACCENT_DARK": "#0a58ca",
-    "BORDER": "#ced4da",
-    "API_BG": "#f8f9fa",
-    "STATUS_BG": "#e9ecef",
-    "BTN_HOVER": "#e2e6ea",
+    "PRIMARY_BG": "#f5f6f8",      # window background
+    "CARD_BG": "#ffffff",          # surfaces/cards
+    "TEXT": "#212529",             # primary text
+    "TEXT_MUTED": "#5c636a",       # secondary text
+    "ACCENT": "#0a66c2",          # brand blue
+    "ACCENT_DARK": "#084a8c",      # hover/active blue
+    "BORDER": "#d0d7de",          # subtle borders
+    "API_BG": "#f8f9fa",          # API/status log background
+    "STATUS_BG": "#e9ecef",       # status bar background
+    "BTN_HOVER": "#e2e6ea",       # generic hover grey
     "SUCCESS": "#198754",
     "SUCCESS_BG": "#d1e7dd",
     "SUCCESS_FG": "#0f5132",
@@ -65,18 +66,18 @@ PALETTE_LIGHT = {
     "ERROR_BG": "#f8d7da",
     "ERROR_FG": "#842029",
     "INFO_BG": "#d1ecf1",
-    "ALLOCATION_HEADER_BG": "#dee2e6",
+    "ALLOCATION_HEADER_BG": "#eef1f3",
 }
 PALETTE_DARK = {
-    "PRIMARY_BG": "#181a1b",
-    "CARD_BG": "#212529",
-    "TEXT": "#f8f9fa",
-    "TEXT_MUTED": "#ced4da",
+    "PRIMARY_BG": "#1e1f26",
+    "CARD_BG": "#272932",
+    "TEXT": "#e9ecef",
+    "TEXT_MUTED": "#adb5bd",
     "ACCENT": "#4dabf7",
-    "ACCENT_DARK": "#1c7ed6",
+    "ACCENT_DARK": "#339af0",
     "BORDER": "#343a40",
-    "API_BG": "#1f2224",
-    "STATUS_BG": "#262a2e",
+    "API_BG": "#202226",
+    "STATUS_BG": "#2c3036",
     "BTN_HOVER": "#343a40",
     "SUCCESS": "#51cf66",
     "SUCCESS_BG": "#13281e",
@@ -88,7 +89,7 @@ PALETTE_DARK = {
     "ERROR_BG": "#2d1f1f",
     "ERROR_FG": "#ffa8a8",
     "INFO_BG": "#1c2c3a",
-    "ALLOCATION_HEADER_BG": "#2e2e2e",
+    "ALLOCATION_HEADER_BG": "#343a40",
 }
 
 
@@ -210,25 +211,39 @@ def apply_theme(theme: str | None = None):
     if style:
         style.configure('.', background=pal['PRIMARY_BG'], foreground=pal['TEXT'], font=default_font)
         style.configure('TFrame', background=pal['PRIMARY_BG'])
-        style.configure('Card.TFrame', background=pal['CARD_BG'], relief='solid', borderwidth=1)
+        style.configure('Card.TFrame', background=pal['CARD_BG'], relief='solid', borderwidth=1, bordercolor=pal['BORDER'])
         style.configure('TLabel', background=pal['PRIMARY_BG'], foreground=pal['TEXT_MUTED'], font=label_font)
-        style.configure('Title.TLabel', background=pal['PRIMARY_BG'], foreground=pal['ACCENT'], font=(DEFAULT_FONT_FAMILY, 12, 'bold'))
-        style.configure('TButton', background=pal['CARD_BG'], padding=(10, 6), relief='raised', font=button_font)
+        style.configure('Title.TLabel', background=pal['PRIMARY_BG'], foreground=pal['ACCENT'],
+                        font=(DEFAULT_FONT_FAMILY, 12, 'bold'))
+        style.configure('TButton', background=pal['CARD_BG'], padding=(10, 6), relief='flat',
+                        font=button_font, borderwidth=1, bordercolor=pal['BORDER'], focusthickness=1,
+                        focuscolor=pal['ACCENT'])
         style.map('TButton', background=[('active', pal['BTN_HOVER'])], bordercolor=[('active', pal['ACCENT'])])
         style.configure('Sidebar.TFrame', background=pal['CARD_BG'])
         style.configure('Content.TFrame', background=pal['PRIMARY_BG'])
         style.configure('Sidebar.TLabelframe', background=pal['CARD_BG'])
         style.configure('Sidebar.TLabelframe.Label', background=pal['CARD_BG'], foreground=pal['ACCENT'])
-        style.configure('Sidebar.TButton', background=pal['CARD_BG'], foreground=pal['TEXT'], padding=(12, 8), relief='flat', borderwidth=1, font=button_font)
-        style.map('Sidebar.TButton', background=[('active', pal['BTN_HOVER'])], bordercolor=[('active', pal['ACCENT'])])
-        style.configure('Sidebar.Accent.TButton', background=pal['ACCENT'], foreground=pal['CARD_BG'], padding=(12, 8), relief='flat', font=button_font)
+        style.configure('Custom.TEntry', fieldbackground=pal['CARD_BG'], foreground=pal['TEXT'],
+                        bordercolor=pal['BORDER'], borderwidth=1)
+        style.map('Custom.TEntry', bordercolor=[('focus', pal['ACCENT'])])
+        style.configure('Sidebar.TButton', background=pal['CARD_BG'], foreground=pal['TEXT'], padding=(12, 8),
+                        relief='flat', borderwidth=1, bordercolor=pal['BORDER'], font=button_font,
+                        focusthickness=1, focuscolor=pal['ACCENT'])
+        style.map('Sidebar.TButton', background=[('active', pal['BTN_HOVER'])],
+                   bordercolor=[('active', pal['ACCENT'])], foreground=[('active', pal['ACCENT'])])
+        style.configure('Sidebar.Accent.TButton', background=pal['ACCENT'], foreground=pal['CARD_BG'],
+                        padding=(12, 8), relief='flat', font=button_font)
         style.map('Sidebar.Accent.TButton', background=[('active', pal['ACCENT_DARK'])])
-        style.configure('Sidebar.Danger.TButton', background='#dc3545', foreground=pal['CARD_BG'], padding=(12, 8), relief='flat', font=button_font)
+        style.configure('Sidebar.Danger.TButton', background='#dc3545', foreground=pal['CARD_BG'],
+                        padding=(12, 8), relief='flat', font=button_font)
         style.map('Sidebar.Danger.TButton', background=[('active', '#b02a37')])
         style.configure('Topbar.TFrame', background=pal['ACCENT'])
-        style.configure('Topbar.TLabel', background=pal['ACCENT'], foreground=pal['CARD_BG'], font=(DEFAULT_FONT_FAMILY, 12, 'bold'))
-        style.configure('Topbar.TButton', background=pal['ACCENT'], foreground=pal['CARD_BG'], relief='flat', padding=(6, 4), font=button_font)
-        style.map('Topbar.TButton', background=[('active', pal['ACCENT_DARK'])])
+        style.configure('Topbar.TLabel', background=pal['ACCENT'], foreground=pal['CARD_BG'],
+                        font=(DEFAULT_FONT_FAMILY, 12, 'bold'))
+        style.configure('Topbar.TButton', background=pal['ACCENT'], foreground=pal['CARD_BG'], relief='flat',
+                        padding=(6, 4), font=button_font)
+        style.map('Topbar.TButton', background=[('active', pal['ACCENT_DARK'])],
+                   foreground=[('active', pal['CARD_BG'])])
         style.configure('Status.TLabel', background=pal['STATUS_BG'], foreground=pal['TEXT_MUTED'],
                         font=statusbar_font, padding=(8, 3))
         style.configure('Success.Status.TLabel', background=pal['STATUS_BG'], foreground=pal['SUCCESS'],
@@ -239,10 +254,11 @@ def apply_theme(theme: str | None = None):
                         font=statusbar_font, padding=(8, 3))
         style.configure('Info.Status.TLabel', background=pal['STATUS_BG'], foreground=pal['ACCENT'],
                         font=statusbar_font, padding=(8, 3))
-        style.configure('Status.TFrame', background=pal['STATUS_BG'])
+        style.configure('Status.TFrame', background=pal['STATUS_BG'], borderwidth=1, bordercolor=pal['BORDER'])
         style.configure('TLabelframe', background=pal['CARD_BG'])
         style.configure('TLabelframe.Label', background=pal['CARD_BG'], foreground=pal['ACCENT'])
-        style.configure('Accent.Horizontal.TProgressbar', background=pal['ACCENT'], troughcolor=pal['CARD_BG'])
+        style.configure('Accent.Horizontal.TProgressbar', background=pal['ACCENT'], troughcolor=pal['CARD_BG'],
+                        bordercolor=pal['BORDER'], borderwidth=1)
 
     if root:
         root.configure(bg=pal['PRIMARY_BG'])
@@ -461,7 +477,7 @@ def build_ui(root_win: tk.Tk):
     input_section.pack(fill=tk.X)
 
     ttk.Label(input_section, text='الرقم الوطني (NIN):').pack(anchor='e', pady=(0, 4))
-    nin_entry = ttk.Entry(input_section, justify='right')
+    nin_entry = ttk.Entry(input_section, justify='right', style='Custom.TEntry')
     nin_entry.pack(fill=tk.X, pady=(0, 8))
     nin_entry.insert(0, settings_manager.get_last_nin() if hasattr(settings_manager, 'get_last_nin') else '')
     try:
@@ -470,7 +486,7 @@ def build_ui(root_win: tk.Tk):
         pass
 
     ttk.Label(input_section, text='رقم الوسيط:').pack(anchor='e', pady=(0, 4))
-    numero_entry = ttk.Entry(input_section, justify='right')
+    numero_entry = ttk.Entry(input_section, justify='right', style='Custom.TEntry')
     numero_entry.pack(fill=tk.X, pady=(0, 8))
     numero_entry.insert(0, settings_manager.get_last_numero() if hasattr(settings_manager, 'get_last_numero') else '')
 
@@ -524,8 +540,15 @@ def build_ui(root_win: tk.Tk):
     status_body = ttk.Frame(status_frame)
     status_body.pack(fill=tk.BOTH, expand=True, pady=(8, 0))
 
-    status_text = scrolledtext.ScrolledText(status_body, wrap=tk.WORD, height=14, relief='solid', borderwidth=1)
+    status_text = scrolledtext.ScrolledText(
+        status_body, wrap=tk.WORD, height=14, relief='solid', borderwidth=1,
+        background=pal['API_BG'], foreground=pal['TEXT']
+    )
     status_text.pack(expand=True, fill=tk.BOTH)
+    try:
+        status_text.configure(highlightthickness=1, highlightbackground=pal['BORDER'], insertbackground=pal['TEXT'])
+    except Exception:
+        pass
 
     # Configure tags using gui_utils
     try:
