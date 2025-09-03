@@ -31,6 +31,7 @@ status_bar: ttk.Label | None = None
 progress_bar: ttk.Progressbar | None = None
 status_body: ttk.Frame | None = None
 toggle_button: ttk.Button | None = None
+theme_toggle_btn: ttk.Button | None = None
 status_collapsed: tk.BooleanVar | None = None
 
 action_buttons: list[ttk.Button] = []
@@ -224,6 +225,10 @@ def apply_theme(theme: str | None = None):
         style.map('Sidebar.Accent.TButton', background=[('active', pal['ACCENT_DARK'])])
         style.configure('Sidebar.Danger.TButton', background='#dc3545', foreground=pal['CARD_BG'], padding=(12, 8), relief='flat', font=button_font)
         style.map('Sidebar.Danger.TButton', background=[('active', '#b02a37')])
+        style.configure('Topbar.TFrame', background=pal['ACCENT'])
+        style.configure('Topbar.TLabel', background=pal['ACCENT'], foreground=pal['CARD_BG'], font=(DEFAULT_FONT_FAMILY, 12, 'bold'))
+        style.configure('Topbar.TButton', background=pal['ACCENT'], foreground=pal['CARD_BG'], relief='flat', padding=(6, 4), font=button_font)
+        style.map('Topbar.TButton', background=[('active', pal['ACCENT_DARK'])])
         style.configure('Status.TLabel', background=pal['STATUS_BG'], foreground=pal['TEXT_MUTED'],
                         font=statusbar_font, padding=(8, 3))
         style.configure('Success.Status.TLabel', background=pal['STATUS_BG'], foreground=pal['SUCCESS'],
@@ -247,6 +252,12 @@ def apply_theme(theme: str | None = None):
             except Exception:
                 s_ff, s_fs, s_fw = (DEFAULT_FONT_FAMILY, 11, 'bold')
             gui_utils.configure_status_tags(status_text, (s_ff, s_fs, s_fw))
+        if theme_toggle_btn:
+            try:
+                is_dark = theme == 'dark' if theme else (settings_manager.get_ui_theme() == 'dark')
+                theme_toggle_btn.config(text='☀️' if is_dark else '🌙')
+            except Exception:
+                pass
 
 
 def build_menu(root_win: tk.Tk):
@@ -317,6 +328,21 @@ def toggle_status_area():
         status_body.pack_forget()
         toggle_button.config(text='إظهار ▼')
         status_collapsed.set(True)
+
+
+def toggle_theme():
+    """Toggle between light and dark themes."""
+    if not root:
+        return
+    current = settings_manager.get_ui_theme() if hasattr(settings_manager, 'get_ui_theme') else 'light'
+    new_theme = 'dark' if current == 'light' else 'light'
+    apply_theme(new_theme)
+    if theme_toggle_btn:
+        try:
+            theme_toggle_btn.config(text='☀️' if new_theme == 'dark' else '🌙')
+        except Exception:
+            pass
+    gui_utils.show_toast(root, 'تم اختيار الوضع الداكن' if new_theme == 'dark' else 'تم اختيار الوضع الفاتح')
 
 
 def disable_actions():
@@ -408,9 +434,18 @@ def start_request(request_type: str, clicked_btn: ttk.Button | None = None):
 def build_ui(root_win: tk.Tk):
     global nin_entry, numero_entry, status_text, status_bar, progress_bar
     global cancel_retry_button, cancel_retry_flag, batch_cancel_all_flag
-    global action_buttons, status_body, toggle_button, status_collapsed
+    global action_buttons, status_body, toggle_button, status_collapsed, theme_toggle_btn
 
     pal = current_palette()
+
+    # Top bar with theme toggle
+    topbar = ttk.Frame(root_win, style='Topbar.TFrame', padding=(15, 8))
+    topbar.pack(fill=tk.X)
+    ttk.Label(topbar, text=constants.APP_NAME if hasattr(constants, 'APP_NAME') else 'خدمات وسيط', style='Topbar.TLabel').pack(side=tk.LEFT)
+    icon = '🌙' if (settings_manager.get_ui_theme() if hasattr(settings_manager, 'get_ui_theme') else 'light') == 'light' else '☀️'
+    theme_toggle_btn = ttk.Button(topbar, text=icon, command=toggle_theme, style='Topbar.TButton')
+    theme_toggle_btn.pack(side=tk.RIGHT)
+    gui_utils.add_hover_cursor(theme_toggle_btn)
 
     container = ttk.Frame(root_win)
     container.pack(expand=True, fill=tk.BOTH)
