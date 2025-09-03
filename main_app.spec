@@ -1,14 +1,14 @@
 # -*- mode: python ; coding: utf-8 -*-
 
+import glob
+
+sound_files = [(f, 'assets/sound') for f in glob.glob('assets/sound/*')]
 
 a = Analysis(
     ['main_app.py'],
     pathex=[],
     binaries=[],
-    datas=[
-        ('assets/fonts/*.ttf', 'assets/fonts'),
-        ('assets/sound/*', 'assets/sound'),
-    ],
+    datas=[('assets/fonts/*.ttf', 'assets/fonts')] + sound_files,
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

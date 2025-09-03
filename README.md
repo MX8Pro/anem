@@ -32,3 +32,4 @@ Place audio clips under `assets/sound` named for their purpose (e.g., `success`,
 The application looks for a matching file with a `.wav`, `.mp3`, or `.ogg` extension and uses it when present.
 
 If a file is missing the corresponding event simply plays without sound. WAV files use the Windows audio API when possible, while other formats fall back to `playsound`. The PyInstaller build bundles any files in `assets/sound` automatically.
+If the folder contains no audio files, the build skips that directory so packaging still succeeds.
