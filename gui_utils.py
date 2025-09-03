@@ -16,6 +16,12 @@ from tkinter import filedialog # Needed for save/printer dialogs
 import time # For status bar reset timer
 import webbrowser # *** تمت الإضافة: لفتح المتصفح ***
 from typing import Optional, Any # For type hinting, Added Any
+import threading
+
+try:
+    from playsound import playsound as _playsound
+except Exception:  # playsound is optional
+    _playsound = None
 
 # --- Local Imports ---
 import settings_manager # Import settings manager
@@ -47,6 +53,40 @@ COLOR_BORDER = "#ced4da"
 COLOR_ALLOCATION_HEADER_BG = "#dee2e6"
 COLOR_STATUS_DEFAULT_BG = '#e9ecef'
 # --------------------------------------------------------------------
+
+# --- Sound configuration ---
+def resource_path(*parts: str) -> str:
+    base = getattr(sys, "_MEIPASS", os.path.abspath("."))
+    return os.path.join(base, *parts)
+
+SOUND_DIR = resource_path('assets', 'sound')
+SOUND_FILES = {
+    'success': 'success.wav',
+    'warning': 'warning.wav',
+    'error': 'error.wav',
+    'info': 'info.wav',
+}
+
+def play_sound(key: str):
+    filename = SOUND_FILES.get(key)
+    if not filename:
+        return
+    path = os.path.join(SOUND_DIR, filename)
+    if not os.path.isfile(path):
+        return
+
+    def _play():
+        try:
+            if sys.platform.startswith('win'):
+                import winsound
+                winsound.PlaySound(path, winsound.SND_FILENAME | winsound.SND_ASYNC)
+            elif _playsound:
+                _playsound(path, block=False)
+        except Exception as e:
+            print(f"Sound play failed: {e}")
+
+    threading.Thread(target=_play, daemon=True).start()
+
 
 # --- Theme palette update ---
 def set_theme_palette(palette: dict):
@@ -440,6 +480,8 @@ def show_message(root, msg_type, title, message, show_in_batch=False):
             LAST_ERROR_DETAILS["title"] = title
             LAST_ERROR_DETAILS["message"] = message
         if root and root.winfo_exists():
+            if msg_type in SOUND_FILES:
+                play_sound(msg_type)
             getattr(messagebox, f"show{msg_type}")(full_title, message, icon=msg_type, parent=root)
         else:
             print(f"Messagebox not shown because parent window is destroyed: {title} - {message}")
@@ -477,6 +519,9 @@ def update_status_bar(root, status_bar_label, text_to_display, msg_type='default
 
             is_ongoing = "جاري" in modified_text or "محاولة" in modified_text
             should_reset = not is_ongoing and message_type != 'default'
+
+            if message_type in SOUND_FILES:
+                play_sound(message_type)
 
             if should_reset and reset_after_ms > 0:
                 if root and root.winfo_exists():

@@ -25,3 +25,14 @@ The latest redesign introduces an accent-colored top bar with a quick theme togg
 ### Fonts
 
 Any `.ttf` files placed under `assets/fonts` are registered automatically when the application starts. If Cairo or Tajawal files are present, that family becomes the interface default so the program can use the custom fonts even when packaged as an `.exe`. Should loading fail, the UI quietly falls back to the system fonts.
+
+### Sounds
+
+Place the following audio files under `assets/sound` to enable audible feedback:
+
+- `success.wav`
+- `warning.wav`
+- `error.wav`
+- `info.wav`
+
+If a file is missing the corresponding event simply plays without sound. The application uses `playsound` on non‑Windows platforms and the Windows API when available, and the PyInstaller build bundles any files in `assets/sound` automatically.
