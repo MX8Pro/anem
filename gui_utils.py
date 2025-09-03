@@ -16,6 +16,12 @@ from tkinter import filedialog # Needed for save/printer dialogs
 import time # For status bar reset timer
 import webbrowser # *** تمت الإضافة: لفتح المتصفح ***
 from typing import Optional, Any # For type hinting, Added Any
+import threading
+
+try:
+    from playsound import playsound as _playsound
+except Exception:  # playsound is optional
+    _playsound = None
 
 # --- Local Imports ---
 import settings_manager # Import settings manager
@@ -28,25 +34,62 @@ status_bar_reset_timer = None
 # --- Color Palette (Mirrored from main_app.py for tag configuration) ---
 COLOR_PRIMARY_BG = "#f0f2f5"
 COLOR_SECONDARY_BG = "#ffffff"
-COLOR_TEXT = "#333333"
-COLOR_TEXT_SECONDARY = "#555555"
-COLOR_ACCENT = "#007bff"
-COLOR_ACCENT_DARK = "#0056b3"
-COLOR_SUCCESS = "#28a745"
-COLOR_SUCCESS_BG = "#e9f7ec" # Lighter green background
-COLOR_SUCCESS_FG = "#155724" # Darker green text
+COLOR_TEXT = "#1a1a1a"
+COLOR_TEXT_SECONDARY = "#6c757d"
+COLOR_ACCENT = "#0d6efd"
+COLOR_ACCENT_DARK = "#0a58ca"
+COLOR_SUCCESS = "#198754"
+COLOR_SUCCESS_BG = "#d1e7dd"  # Lighter green background
+COLOR_SUCCESS_FG = "#0f5132"  # Darker green text
 COLOR_WARNING = "#ffc107"
-COLOR_WARNING_BG = "#fff8e1" # Lighter yellow background
-COLOR_WARNING_FG = "#856404" # Darker yellow text
+COLOR_WARNING_BG = "#fff3cd"  # Lighter yellow background
+COLOR_WARNING_FG = "#664d03"  # Darker yellow text
 COLOR_ERROR = "#dc3545"
-COLOR_ERROR_BG = "#fbeae5" # Lighter red background
-COLOR_ERROR_FG = "#721c24" # Darker red text
-COLOR_INFO_BG = "#e7f3fe"
+COLOR_ERROR_BG = "#f8d7da"  # Lighter red background
+COLOR_ERROR_FG = "#842029"  # Darker red text
+COLOR_INFO_BG = "#d1ecf1"
 COLOR_API_BG = "#f8f9fa"
 COLOR_BORDER = "#ced4da"
-COLOR_ALLOCATION_HEADER_BG = "#e0e0e0"
-COLOR_STATUS_DEFAULT_BG = '#dee2e6'
+COLOR_ALLOCATION_HEADER_BG = "#dee2e6"
+COLOR_STATUS_DEFAULT_BG = '#e9ecef'
 # --------------------------------------------------------------------
+
+# --- Sound configuration ---
+def resource_path(*parts: str) -> str:
+    base = getattr(sys, "_MEIPASS", os.path.abspath("."))
+    return os.path.join(base, *parts)
+
+SOUND_DIR = resource_path('assets', 'sound')
+
+# Discover available sound files for known keys using common extensions.
+_SOUND_EXTS = ('.wav', '.mp3', '.ogg')
+SOUND_FILES = {}
+for _key in ('success', 'warning', 'error', 'info'):
+    for _ext in _SOUND_EXTS:
+        _candidate = os.path.join(SOUND_DIR, f"{_key}{_ext}")
+        if os.path.isfile(_candidate):
+            SOUND_FILES[_key] = _candidate
+            break
+
+
+def play_sound(key: str):
+    path = SOUND_FILES.get(key)
+    if not path or not os.path.isfile(path):
+        return
+
+    def _play():
+        try:
+            # Use winsound for WAV on Windows; otherwise fall back to playsound
+            if path.lower().endswith('.wav') and sys.platform.startswith('win'):
+                import winsound
+                winsound.PlaySound(path, winsound.SND_FILENAME | winsound.SND_ASYNC)
+            elif _playsound:
+                _playsound(path, block=False)
+        except Exception as e:
+            print(f"Sound play failed: {e}")
+
+    threading.Thread(target=_play, daemon=True).start()
+
 
 # --- Theme palette update ---
 def set_theme_palette(palette: dict):
@@ -102,6 +145,15 @@ def attach_tooltip(widget, text: str):
         _Tooltip(widget, text)
     except Exception as e:
         print(f"Tooltip attach failed: {e}")
+
+
+def add_hover_cursor(widget):
+    """Show a hand cursor when hovering over a widget."""
+    try:
+        widget.bind("<Enter>", lambda e: widget.configure(cursor="hand2"))
+        widget.bind("<Leave>", lambda e: widget.configure(cursor=""))
+    except Exception as e:
+        print(f"Hover cursor binding failed: {e}")
 
 
 # --- Toast Notification ---
@@ -214,6 +266,34 @@ def hide_widget(root, widget):
             except Exception as e:
                 print(f"Unexpected error hiding widget {w} with grid: {e}")
     schedule_gui_update(root, _hide, widget)
+
+
+def _hex_to_rgb(value: str) -> tuple[int, int, int]:
+    value = value.lstrip('#')
+    return tuple(int(value[i:i+2], 16) for i in (0, 2, 4))
+
+
+def _rgb_to_hex(rgb: tuple[int, int, int]) -> str:
+    return f"#{rgb[0]:02x}{rgb[1]:02x}{rgb[2]:02x}"
+
+
+def _fade_tag(widget, tag, start_color, end_color, start_idx, end_idx, steps: int = 10, delay: int = 30):
+    """Gradually transitions a tag's foreground from start_color to end_color."""
+    start_rgb = _hex_to_rgb(start_color)
+    end_rgb = _hex_to_rgb(end_color)
+    delta = [(e - s) / steps for s, e in zip(start_rgb, end_rgb)]
+
+    def _step(i: int = 0):
+        if not widget.winfo_exists():
+            return
+        rgb = [int(start_rgb[j] + delta[j] * i) for j in range(3)]
+        widget.tag_configure(tag, foreground=_rgb_to_hex(tuple(rgb)))
+        if i < steps:
+            widget.after(delay, _step, i + 1)
+        else:
+            widget.tag_remove(tag, start_idx, end_idx)
+
+    _step()
 
 
 # --- Function to enable/disable buttons ---
@@ -332,8 +412,24 @@ def update_status_text(root, status_text_widget, text, clear=False, tags=None, a
 
             if clear_flag:
                 widget.delete('1.0', tk.END)
+            start_index = widget.index(tk.END)
             widget.insert(tk.END, final_text, cleaned_tags)
+            end_index = widget.index(tk.END)
             widget.see(tk.END)
+
+            # Fade-in animation for new text
+            try:
+                widget.tag_add('fade_tmp', start_index, end_index)
+                widget.tag_configure('fade_tmp', foreground=COLOR_STATUS_DEFAULT_BG)
+                final_fg = COLOR_TEXT
+                for t in reversed(cleaned_tags):
+                    fg = widget.tag_cget(t, 'foreground')
+                    if fg:
+                        final_fg = fg
+                        break
+                _fade_tag(widget, 'fade_tmp', COLOR_STATUS_DEFAULT_BG, final_fg, start_index, end_index)
+            except Exception as e:
+                print(f"Fade-in error: {e}")
 
             if is_disabled:
                  widget.config(state=tk.DISABLED)
@@ -387,6 +483,8 @@ def show_message(root, msg_type, title, message, show_in_batch=False):
             LAST_ERROR_DETAILS["title"] = title
             LAST_ERROR_DETAILS["message"] = message
         if root and root.winfo_exists():
+            if msg_type in SOUND_FILES:
+                play_sound(msg_type)
             getattr(messagebox, f"show{msg_type}")(full_title, message, icon=msg_type, parent=root)
         else:
             print(f"Messagebox not shown because parent window is destroyed: {title} - {message}")
@@ -425,6 +523,9 @@ def update_status_bar(root, status_bar_label, text_to_display, msg_type='default
             is_ongoing = "جاري" in modified_text or "محاولة" in modified_text
             should_reset = not is_ongoing and message_type != 'default'
 
+            if message_type in SOUND_FILES:
+                play_sound(message_type)
+
             if should_reset and reset_after_ms > 0:
                 if root and root.winfo_exists():
                     try:
@@ -449,10 +550,9 @@ def start_progressbar(root, progress_bar_widget, status_label_widget):
     def _start(pb, lbl):
         if pb and pb.winfo_exists() and lbl and lbl.master and lbl.master.winfo_exists():
             try:
-                pb.grid(row=0, column=1, sticky="ew", padx=(5,0))
-                lbl.master.columnconfigure(0, weight=0) # Status label takes less space
-                lbl.master.columnconfigure(1, weight=1) # Progress bar takes more
-                pb.start(10) # Start animation
+                # Use pack to avoid conflicts with existing geometry manager
+                pb.pack(side=tk.RIGHT, padx=6, pady=3)
+                pb.start(10)  # Start animation
                 print("Progress bar started.")
             except tk.TclError as e:
                 print(f"Error starting progress bar: {e}")
@@ -463,13 +563,11 @@ def stop_progressbar(root, progress_bar_widget, status_label_widget):
     def _stop(pb, lbl):
         if pb and pb.winfo_exists() and lbl and lbl.master and lbl.master.winfo_exists():
             try:
-                pb.stop() # Stop animation
-                pb.grid_remove() # Hide it
-                lbl.master.columnconfigure(0, weight=1) # Status label takes full width again
-                lbl.master.columnconfigure(1, weight=0) # Progress bar takes no space
+                pb.stop()  # Stop animation
+                pb.pack_forget()  # Hide it
                 print("Progress bar stopped.")
             except tk.TclError as e:
-                 print(f"Error stopping progress bar: {e}")
+                print(f"Error stopping progress bar: {e}")
     schedule_gui_update(root, _stop, progress_bar_widget, status_label_widget)
 
 
