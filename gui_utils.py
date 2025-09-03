@@ -60,24 +60,27 @@ def resource_path(*parts: str) -> str:
     return os.path.join(base, *parts)
 
 SOUND_DIR = resource_path('assets', 'sound')
-SOUND_FILES = {
-    'success': 'success.wav',
-    'warning': 'warning.wav',
-    'error': 'error.wav',
-    'info': 'info.wav',
-}
+
+# Discover available sound files for known keys using common extensions.
+_SOUND_EXTS = ('.wav', '.mp3', '.ogg')
+SOUND_FILES = {}
+for _key in ('success', 'warning', 'error', 'info'):
+    for _ext in _SOUND_EXTS:
+        _candidate = os.path.join(SOUND_DIR, f"{_key}{_ext}")
+        if os.path.isfile(_candidate):
+            SOUND_FILES[_key] = _candidate
+            break
+
 
 def play_sound(key: str):
-    filename = SOUND_FILES.get(key)
-    if not filename:
-        return
-    path = os.path.join(SOUND_DIR, filename)
-    if not os.path.isfile(path):
+    path = SOUND_FILES.get(key)
+    if not path or not os.path.isfile(path):
         return
 
     def _play():
         try:
-            if sys.platform.startswith('win'):
+            # Use winsound for WAV on Windows; otherwise fall back to playsound
+            if path.lower().endswith('.wav') and sys.platform.startswith('win'):
                 import winsound
                 winsound.PlaySound(path, winsound.SND_FILENAME | winsound.SND_ASYNC)
             elif _playsound:

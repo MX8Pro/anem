@@ -28,11 +28,7 @@ Any `.ttf` files placed under `assets/fonts` are registered automatically when t
 
 ### Sounds
 
-Place the following audio files under `assets/sound` to enable audible feedback:
+Place audio clips under `assets/sound` named for their purpose (e.g., `success`, `warning`, `error`, `info`).
+The application looks for a matching file with a `.wav`, `.mp3`, or `.ogg` extension and uses it when present.
 
-- `success.wav`
-- `warning.wav`
-- `error.wav`
-- `info.wav`
-
-If a file is missing the corresponding event simply plays without sound. The application uses `playsound` on non‑Windows platforms and the Windows API when available, and the PyInstaller build bundles any files in `assets/sound` automatically.
+If a file is missing the corresponding event simply plays without sound. WAV files use the Windows audio API when possible, while other formats fall back to `playsound`. The PyInstaller build bundles any files in `assets/sound` automatically.
